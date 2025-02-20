@@ -1,200 +1,277 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Card } from 'react-native-paper';
+import { BarChart } from 'react-native-gifted-charts';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
 const ResultsUI = () => {
   const params = useLocalSearchParams();
+  const router = useRouter();
   
   // Parse the JSON strings from params
-  const digit3Count = Number(params.digit3Count);
-  const digit3ColumnCount = JSON.parse(params.digit3ColumnCount as string);
   const leftSide3s = JSON.parse(params.leftSide3s as string);
   const rightSide3s = JSON.parse(params.rightSide3s as string);
   const quadrant3s = JSON.parse(params.quadrant3s as string);
-  const pressedCoordinates = JSON.parse(params.pressedCoordinates as string);
+
+  // Prepare grouped bar data for columns
+  const columnBarData = [];
+  for (let i = 0; i < 10; i++) {
+    columnBarData.push({
+      value: leftSide3s.filter(coord => coord.col === i).length,
+      frontColor: '#4B9EF8',
+      label: `${i + 1}`,
+      spacing: 2,
+    });
+    columnBarData.push({
+      value: rightSide3s.filter(coord => coord.col === i).length,
+      frontColor: '#22B5F5',
+      spacing: 18,
+    });
+  }
+
+  // Prepare data for quadrants with left/right split
+  const quadrantBarData = [
+    // Upper Left Quadrant
+    {
+      value: leftSide3s.filter(coord => 
+        coord.row < 5 && coord.col < 5
+      ).length,
+      frontColor: '#4B9EF8',
+      label: 'UL',
+      spacing: 2,
+    },
+    {
+      value: rightSide3s.filter(coord => 
+        coord.row < 5 && coord.col < 5
+      ).length,
+      frontColor: '#22B5F5',
+      spacing: 40,
+    },
+    // Upper Right Quadrant
+    {
+      value: leftSide3s.filter(coord => 
+        coord.row < 5 && coord.col >= 5
+      ).length,
+      frontColor: '#4B9EF8',
+      label: 'UR',
+      spacing: 2,
+    },
+    {
+      value: rightSide3s.filter(coord => 
+        coord.row < 5 && coord.col >= 5
+      ).length,
+      frontColor: '#22B5F5',
+      spacing: 40,
+    },
+    // Lower Left Quadrant
+    {
+      value: leftSide3s.filter(coord => 
+        coord.row >= 5 && coord.col < 5
+      ).length,
+      frontColor: '#4B9EF8',
+      label: 'LL',
+      spacing: 2,
+    },
+    {
+      value: rightSide3s.filter(coord => 
+        coord.row >= 5 && coord.col < 5
+      ).length,
+      frontColor: '#22B5F5',
+      spacing: 40,
+    },
+    // Lower Right Quadrant
+    {
+      value: leftSide3s.filter(coord => 
+        coord.row >= 5 && coord.col >= 5
+      ).length,
+      frontColor: '#4B9EF8',
+      label: 'LR',
+      spacing: 2,
+    },
+    {
+      value: rightSide3s.filter(coord => 
+        coord.row >= 5 && coord.col >= 5
+      ).length,
+      frontColor: '#22B5F5',
+      spacing: 40,
+    },
+  ];
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* Overall Statistics */}
-        <Card style={styles.card}>
-          <Card.Title title="Overall Statistics" />
-          <Card.Content>
-            <Text style={styles.statText}>Total 3's Found: {digit3Count}</Text>
-            <Text style={styles.statText}>Total Selections Made: {pressedCoordinates.length}</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Column Distribution */}
-        <Card style={styles.card}>
-          <Card.Title title="Column Distribution" />
-          <Card.Content>
-            <View style={styles.columnGrid}>
-              {digit3ColumnCount.map((count, index) => (
-                <View key={index} style={styles.columnItem}>
-                  <Text style={styles.columnHeader}>Col {index + 1}</Text>
-                  <Text style={styles.columnCount}>{count}</Text>
-                </View>
-              ))}
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Position Analysis */}
-        <Card style={styles.card}>
-          <Card.Title title="Position Analysis" />
-          <Card.Content>
-            <View style={styles.positionStats}>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Left Side 3's</Text>
-                <Text style={styles.statValue}>{leftSide3s.length}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Right Side 3's</Text>
-                <Text style={styles.statValue}>{rightSide3s.length}</Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Quadrant Analysis */}
-        <Card style={styles.card}>
-          <Card.Title title="Quadrant Analysis" />
-          <Card.Content>
-            <View style={styles.quadrantGrid}>
-              <View style={styles.quadrantRow}>
-                <View style={styles.quadrantBox}>
-                  <Text style={styles.quadrantLabel}>Upper Left</Text>
-                  <Text style={styles.quadrantValue}>{quadrant3s.upperLeft.length}</Text>
-                </View>
-                <View style={styles.quadrantBox}>
-                  <Text style={styles.quadrantLabel}>Upper Right</Text>
-                  <Text style={styles.quadrantValue}>{quadrant3s.upperRight.length}</Text>
-                </View>
-              </View>
-              <View style={styles.quadrantRow}>
-                <View style={styles.quadrantBox}>
-                  <Text style={styles.quadrantLabel}>Lower Left</Text>
-                  <Text style={styles.quadrantValue}>{quadrant3s.lowerLeft.length}</Text>
-                </View>
-                <View style={styles.quadrantBox}>
-                  <Text style={styles.quadrantLabel}>Lower Right</Text>
-                  <Text style={styles.quadrantValue}>{quadrant3s.lowerRight.length}</Text>
-                </View>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Selection Path */}
-        <Card style={styles.card}>
-          <Card.Title title="Selection Path" />
-          <Card.Content>
-            <ScrollView style={styles.pathScroll}>
-              {pressedCoordinates.map((coord, index) => (
-                <Text key={index} style={styles.pathText}>
-                  {`${index + 1}. Row ${coord.row + 1}, Col ${coord.col + 1}, Digit ${coord.digit + 1}`}
-                </Text>
-              ))}
-            </ScrollView>
-          </Card.Content>
-        </Card>
+    <View style={styles.container}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="white" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.content}>
+          <View style={styles.chartsRow}>
+            {/* Column Distribution Chart */}
+            <Card style={[styles.darkCard, styles.chartCard]}>
+              <Card.Title 
+                title="Column Distribution" 
+                titleStyle={styles.cardTitle}
+              />
+              <Card.Content>
+                <View style={styles.chartContainer}>
+                  <BarChart
+                    data={columnBarData}
+                    barWidth={15}
+                    spacing={2}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    xAxisColor={'rgba(255,255,255,0.2)'}
+                    yAxisColor={'rgba(255,255,255,0.2)'}
+                    yAxisTextStyle={{ color: '#fff', fontSize: 12 }}
+                    xAxisLabelTextStyle={{ color: '#fff', fontSize: 12 }}
+                    noOfSections={10}
+                    maxValue={12}
+                    width={(width/2) - 40}
+                    height={250}
+                    isAnimated
+                  />
+                  <View style={styles.legendContainer}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendColor, { backgroundColor: '#4B9EF8' }]} />
+                      <Text style={styles.legendText}>Left Side</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendColor, { backgroundColor: '#22B5F5' }]} />
+                      <Text style={styles.legendText}>Right Side</Text>
+                    </View>
+                  </View>
+                </View>
+              </Card.Content>
+            </Card>
+
+            {/* Quadrant Distribution Chart */}
+            <Card style={[styles.darkCard, styles.chartCard]}>
+              <Card.Title 
+                title="Quadrant Distribution" 
+                titleStyle={styles.cardTitle}
+              />
+              <Card.Content>
+                <View style={styles.chartContainer}>
+                  <BarChart
+                    data={quadrantBarData}
+                    barWidth={20}
+                    spacing={2}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    xAxisColor={'rgba(255,255,255,0.2)'}
+                    yAxisColor={'rgba(255,255,255,0.2)'}
+                    yAxisTextStyle={{ color: '#fff', fontSize: 12 }}
+                    xAxisLabelTextStyle={{ color: '#fff', fontSize: 12 }}
+                    noOfSections={10}
+                    maxValue={20}
+                    width={(width/2) - 40}
+                    height={250}
+                    isAnimated
+                  />
+                  <View style={styles.legendContainer}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendColor, { backgroundColor: '#4B9EF8' }]} />
+                      <Text style={styles.legendText}>Left Side</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendColor, { backgroundColor: '#22B5F5' }]} />
+                      <Text style={styles.legendText}>Right Side</Text>
+                    </View>
+                  </View>
+                </View>
+              </Card.Content>
+            </Card>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1a1a2e',
+  },
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: '#242444',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    color: 'white',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  scrollContainer: {
+    flex: 1,
   },
   content: {
     padding: 16,
   },
-  card: {
-    marginBottom: 16,
-    elevation: 4,
-    borderRadius: 8,
-  },
-  statText: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  columnGrid: {
+  chartsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
-  columnItem: {
-    width: '18%',
-    alignItems: 'center',
-    padding: 8,
-    marginBottom: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-  },
-  columnHeader: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  columnCount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  positionStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 8,
-  },
-  statBox: {
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    minWidth: 120,
-  },
-  statLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  quadrantGrid: {
-    marginVertical: 8,
-  },
-  quadrantRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  chartCard: {
+    width: (width/2) - 24,
     marginBottom: 16,
   },
-  quadrantBox: {
+  darkCard: {
+    backgroundColor: '#242444',
+    elevation: 4,
+    borderRadius: 12,
+  },
+  cardTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  chartContainer: {
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    minWidth: width * 0.35,
+    marginVertical: 10,
   },
-  quadrantLabel: {
-    fontSize: 14,
-    marginBottom: 4,
+  legendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    flexWrap: 'wrap',
   },
-  quadrantValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 10,
+    marginVertical: 5,
   },
-  pathScroll: {
-    maxHeight: 200,
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 5,
   },
-  pathText: {
-    fontSize: 14,
-    marginBottom: 4,
-    color: '#666',
+  legendText: {
+    fontSize: 12,
+    color: '#fff',
   },
 });
 
