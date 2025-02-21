@@ -136,7 +136,7 @@ const HomeUI = () => {
                 onChangeText={text => setParticipantInitials(text.toUpperCase())}
                 placeholder="Enter Participant Initials"
                 placeholderTextColor="rgba(255,255,255,0.5)"
-                maxLength={3}
+                maxLength={5}
                 autoCapitalize="characters"
                 returnKeyType="next"
               />
@@ -150,7 +150,7 @@ const HomeUI = () => {
                 onChangeText={text => setExaminerInitials(text.toUpperCase())}
                 placeholder="Enter Examiner Initials"
                 placeholderTextColor="rgba(255,255,255,0.5)"
-                maxLength={3}
+                maxLength={5}
                 autoCapitalize="characters"
                 returnKeyType="done"
               />

@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-
 const ResultsUI = () => {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -132,10 +131,10 @@ const ResultsUI = () => {
                     roundedTop
                     roundedBottom
                     hideRules
-                    xAxisColor={'rgba(255,255,255,0.2)'}
-                    yAxisColor={'rgba(255,255,255,0.2)'}
-                    yAxisTextStyle={{ color: '#fff', fontSize: 12 }}
-                    xAxisLabelTextStyle={{ color: '#fff', fontSize: 12 }}
+                    xAxisColor={'rgba(0,0,0,0.2)'}
+                    yAxisColor={'rgba(0,0,0,0.2)'}
+                    yAxisTextStyle={{ color: '#000', fontSize: 12 }}
+                    xAxisLabelTextStyle={{ color: '#000', fontSize: 12 }}
                     noOfSections={10}
                     maxValue={12}
                     width={(width/2) - 40}
@@ -171,10 +170,10 @@ const ResultsUI = () => {
                     roundedTop
                     roundedBottom
                     hideRules
-                    xAxisColor={'rgba(255,255,255,0.2)'}
-                    yAxisColor={'rgba(255,255,255,0.2)'}
-                    yAxisTextStyle={{ color: '#fff', fontSize: 12 }}
-                    xAxisLabelTextStyle={{ color: '#fff', fontSize: 12 }}
+                    xAxisColor={'rgba(0,0,0,0.2)'}
+                    yAxisColor={'rgba(0,0,0,0.2)'}
+                    yAxisTextStyle={{ color: '#000', fontSize: 12 }}
+                    xAxisLabelTextStyle={{ color: '#000', fontSize: 12 }}
                     noOfSections={10}
                     maxValue={20}
                     width={(width/2) - 40}
@@ -201,37 +200,38 @@ const ResultsUI = () => {
     </View>
   );
 };
+
 const ResultsDescriptionUI = () => {
-    const params = useLocalSearchParams();
-    
-    // Parse the JSON strings from params
-    const leftSide3s = JSON.parse(params.leftSide3s as string);
-    const rightSide3s = JSON.parse(params.rightSide3s as string);
-    const quadrant3s = JSON.parse(params.quadrant3s as string);
-    const digit3Count = parseInt(params.digit3Count as string);
-    const columnCounts = JSON.parse(params.digit3ColumnCount as string);
+  const params = useLocalSearchParams();
   
-    // Calculate statistics
-    const leftPageCount = columnCounts.slice(0, 5).reduce((a, b) => a + b, 0);
-    const rightPageCount = columnCounts.slice(5, 10).reduce((a, b) => a + b, 0);
-    const leftStringCount = leftSide3s.length;
-    const rightStringCount = rightSide3s.length;
+  // Parse the JSON strings from params
+  const leftSide3s = JSON.parse(params.leftSide3s as string);
+  const rightSide3s = JSON.parse(params.rightSide3s as string);
+  const quadrant3s = JSON.parse(params.quadrant3s as string);
+  const digit3Count = parseInt(params.digit3Count as string);
+  const columnCounts = JSON.parse(params.digit3ColumnCount as string);
+
+  // Calculate statistics
+  const leftPageCount = columnCounts.slice(0, 5).reduce((a, b) => a + b, 0);
+  const rightPageCount = columnCounts.slice(5, 10).reduce((a, b) => a + b, 0);
+  const leftStringCount = leftSide3s.length;
+  const rightStringCount = rightSide3s.length;
+
+  // Calculate omissions
+  const totalOmissions = 120 - digit3Count;
+  const leftPageOmissions = 60 - leftPageCount;
+  const rightPageOmissions = 60 - rightPageCount;
+  const pageCenteredOmission = leftPageOmissions - rightPageOmissions;
   
-    // Calculate omissions
-    const totalOmissions = 120 - digit3Count;
-    const leftPageOmissions = 60 - leftPageCount;
-    const rightPageOmissions = 60 - rightPageCount;
-    const pageCenteredOmission = leftPageOmissions - rightPageOmissions;
-    
-    const leftStringOmissions = 60 - leftStringCount;
-    const rightStringOmissions = 60 - rightStringCount;
-    const stringCenteredOmission = leftStringOmissions - rightStringOmissions;
-  
-    // Format date
-    const currentDate = new Date().toLocaleDateString();
-  
-    return (
-        <View style={styles.descriptionContainer}>
+  const leftStringOmissions = 60 - leftStringCount;
+  const rightStringOmissions = 60 - rightStringCount;
+  const stringCenteredOmission = leftStringOmissions - rightStringOmissions;
+
+  // Format date
+  const currentDate = new Date().toLocaleDateString();
+
+  return (
+    <View style={styles.descriptionContainer}>
       <View style={styles.cardRow}>
         {/* Test Information Card */}
         <Card style={[styles.darkCard, styles.halfWidthCard]}>
@@ -337,32 +337,28 @@ const ResultsDescriptionUI = () => {
         </Card.Content>
       </Card>
     </View>
-  
-  
-    );
-  };
+  );
+};
 
-  
-  
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1828',
+    backgroundColor: '#F0F4F8', // Light background color
   },
   header: {
     paddingTop: 60,
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#242444',
+    backgroundColor: '#4B9EF8', // Enhanced color for header
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   backText: {
-    color: 'white',
+    color: '#FFFFFF', // White text color
     fontSize: 16,
     marginLeft: 8,
   },
@@ -378,16 +374,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   chartCard: {
-    width: (width/2) - 24,
+    width: (width / 2) - 24,
     marginBottom: 16,
   },
   darkCard: {
-    backgroundColor: '#242444',
+    backgroundColor: '#FFFFFF', // Light card background
     elevation: 4,
     borderRadius: 12,
   },
   cardTitle: {
-    color: '#fff',
+    color: '#333333', // Dark text color for titles
     fontSize: 16,
     fontWeight: '600',
   },
@@ -415,10 +411,9 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: '#fff',
+    color: '#333333', // Dark text color for legend
   },
-//   ============
-descriptionContainer: {
+  descriptionContainer: {
     padding: 8,
   },
   cardRow: {
@@ -427,7 +422,7 @@ descriptionContainer: {
     marginBottom: 8,
   },
   halfWidthCard: {
-    width: (width/2) - 12,
+    width: (width / 2) - 12,
     marginBottom: 0,
   },
   fullWidthCard: {
@@ -442,7 +437,7 @@ descriptionContainer: {
     width: '48%', // Slightly less than half to account for spacing
   },
   compactCardTitle: {
-    color: '#fff',
+    color: '#333333', // Dark text color for compact card titles
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 0,
@@ -456,15 +451,15 @@ descriptionContainer: {
     marginBottom: 4,
     paddingBottom: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   compactLabel: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#4B9EF8', // Enhanced color for labels
     fontSize: 12,
     flex: 1,
   },
   compactValue: {
-    color: '#fff',
+    color: '#333333', // Dark text color for values
     fontSize: 12,
     fontWeight: '500',
     flex: 1,
@@ -474,7 +469,7 @@ descriptionContainer: {
     marginBottom: 12,
   },
   compactSectionTitle: {
-    color: '#4B9EF8',
+    color: '#4B9EF8', // Enhanced color for section titles
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 6,
@@ -485,16 +480,15 @@ descriptionContainer: {
     marginBottom: 4,
   },
   compactStatLabel: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#4B9EF8', // Enhanced color for stat labels
     fontSize: 12,
     flex: 2,
   },
   compactStatValue: {
-    color: '#fff',
+    color: '#333333', // Dark text color for stat values
     fontSize: 12,
     fontWeight: '500',
     flex: 1,
-    textAlign: 'right',
   },
 });
 
