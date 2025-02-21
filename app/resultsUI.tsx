@@ -1,15 +1,28 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Card } from 'react-native-paper';
+import { Card , Button} from 'react-native-paper';
 import { BarChart } from 'react-native-gifted-charts';
 import { Ionicons } from '@expo/vector-icons';
+import ExportButton from './ExportButton';
+
 
 const { width, height } = Dimensions.get('window');
 
 const ResultsUI = () => {
   const params = useLocalSearchParams();
   const router = useRouter();
+
+  const handlePrint = () => {
+    // Implement print functionality
+    console.log('Print functionality to be implemented');
+  };
+
+  const handleShare = async () => {
+    // Implement share functionality
+    console.log('Share functionality to be implemented');
+  };
+
   
   // Parse the JSON strings from params
   const leftSide3s = JSON.parse(params.leftSide3s as string);
@@ -196,9 +209,43 @@ const ResultsUI = () => {
           </View>
         </View>
         <ResultsDescriptionUI />
+      <View style={styles.buttonsContainer}>
+         {/* Add the ExportButton component here */}
+         <ExportButton
+         
+          data={{
+            participantId: params.participantId as string,
+            participantInitials: params.participantInitials as string,
+            examinerInitials: params.examinerInitials as string,
+            elapsedTime: params.elapsedTime as string,
+            digit3Count: params.digit3Count as string,
+            digit3ColumnCount: params.digit3ColumnCount as string,
+            leftSide3s: params.leftSide3s as string,
+            rightSide3s: params.rightSide3s as string,
+            quadrant3s: params.quadrant3s as string,
+          }}
+        />
+
+        <Button
+              mode="contained"
+              onPress={() => router.push('/')}
+              style={styles.newTestButton}
+              labelStyle={styles.buttonLabel}
+            >
+              New Test
+            </Button>
+           
+        </View>
+
+      
       </ScrollView>
     </View>
   );
+};
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
 const ResultsDescriptionUI = () => {
@@ -256,6 +303,14 @@ const ResultsDescriptionUI = () => {
               <Text style={styles.compactLabel}>Examiner Initials:</Text>
               <Text style={styles.compactValue}>{params.examinerInitials}</Text>
             </View>
+             {/* Time Elapsed */}
+             <View style={styles.infoRow}>
+            <Text style={styles.compactLabel}>Time:</Text>
+            <Text style={styles.compactValue}>
+            {formatTime(parseInt(params.elapsedTime as string))} (min:sec) = {params.elapsedTime} sec
+            </Text>
+            </View>
+
           </Card.Content>
         </Card>
 
@@ -271,8 +326,11 @@ const ResultsDescriptionUI = () => {
               <Text style={styles.compactStatLabel}>f. Total omissions:</Text>
               <Text style={styles.compactStatValue}>{totalOmissions}</Text>
             </View>
+          
+            
           </Card.Content>
         </Card>
+        
       </View>
 
       {/* Detailed Analysis Card - Full Width */}
@@ -380,7 +438,7 @@ const styles = StyleSheet.create({
   darkCard: {
     backgroundColor: '#FFFFFF', // Light card background
     elevation: 4,
-    borderRadius: 12,
+    borderRadius: 1,
   },
   cardTitle: {
     color: '#333333', // Dark text color for titles
@@ -489,6 +547,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     flex: 1,
+  },
+  timeValue: {
+    color: '#4B9EF8',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  timeLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    paddingBottom: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  
+  buttonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  newTestButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    marginTop: 16,
+    marginHorizontal: 16,
+    marginBottom: 24,
+  },
+  buttonLabel: {
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    paddingVertical: 4,
   },
 });
 
