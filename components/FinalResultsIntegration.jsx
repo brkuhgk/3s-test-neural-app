@@ -5,16 +5,20 @@ import ClickPathVisualization from './ClickPathVisualization';
 import OptimizedHeatmap from './OptimizedHeatmap';
 import EnhancedResultsDescription from './EnhancedResultsDescription';
 
-const FinalResultsIntegration = () => {
-  const params = useLocalSearchParams();
+const FinalResultsIntegration = ({ currentDigitData, selectedDigit, params }) => {
+  // If no currentDigitData is provided, read from params (for backward compatibility)
+  const localParams = useLocalSearchParams();
+  const allParams = params || localParams;
   
   // Parse the JSON strings from params
-  const pressedCoordinates = JSON.parse(params.pressedCoordinates  || '[]');
-  const leftSide3s = JSON.parse(params.leftSide3s || '[]');
-  const rightSide3s = JSON.parse(params.rightSide3s  || '[]');
+  const pressedCoordinates = JSON.parse(allParams.pressedCoordinates || '[]');
   
-  // Combine all positions with digit 3
-  const digit3Positions = [...leftSide3s, ...rightSide3s];
+  // Use either passed currentDigitData or parse from params
+  const leftSideDigits = currentDigitData ? currentDigitData.leftSide : JSON.parse(allParams.leftSide3s || '[]');
+  const rightSideDigits = currentDigitData ? currentDigitData.rightSide : JSON.parse(allParams.rightSide3s || '[]');
+  
+  // Combine all positions with selected digit
+  const digitPositions = [...leftSideDigits, ...rightSideDigits];
   
   // Performance optimization - avoid expensive processing for large datasets
   const shouldShowDetailedVisualization = pressedCoordinates.length <= 300;
@@ -22,7 +26,11 @@ const FinalResultsIntegration = () => {
   return (
     <ScrollView style={styles.scrollContainer}>
       {/* Enhanced Results Summary */}
-      <EnhancedResultsDescription />
+      <EnhancedResultsDescription 
+        currentDigitData={currentDigitData}
+        selectedDigit={selectedDigit}
+        params={allParams}
+      />
       
       {/* Visualizations Header */}
       <View style={styles.sectionHeader}>
@@ -32,18 +40,17 @@ const FinalResultsIntegration = () => {
         </Text>
       </View>
       
-      
-      
       {/* Only show detailed path for smaller datasets to maintain performance */}
       {shouldShowDetailedVisualization ? (
         <ClickPathVisualization 
           pressedCoordinates={pressedCoordinates}
+          highlightedDigit={selectedDigit.toString()}
         />
       ) : (
         <View style={styles.infoCard}>
           <Text style={styles.infoText}>
             Detailed path visualization is disabled for large datasets ({pressedCoordinates.length} clicks) 
-            to maintain app performance. The heatmap above provides an optimized summary.
+            to maintain app performance. The heatmap below provides an optimized summary.
           </Text>
         </View>
       )}
@@ -51,7 +58,8 @@ const FinalResultsIntegration = () => {
       {/* Heatmap View - Optimized for all datasets */}
       <OptimizedHeatmap 
         pressedCoordinates={pressedCoordinates}
-        digit3Positions={digit3Positions}
+        digit3Positions={digitPositions}
+        selectedDigit={selectedDigit.toString()}
       />
     </ScrollView>
   );
