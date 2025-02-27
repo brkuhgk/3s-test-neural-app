@@ -1,7 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, Pressable, FlatList, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Button } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
+import MovementTrackingOverlay from '../components/MovementTrackingOverlay';
+
 
 
 // Get device dimensions
@@ -45,9 +47,18 @@ const Index = () => {
   const participantInitials = params.participantInitials as string;
   const examinerInitials = params.examinerInitials as string;
   
+  const cellWidth = width / 10; // 10 columns across the device width
+  const cellHeight = height / 20; // Adjust cell height based on the device height
+
+  // Refs for measuring cell dimensions
+  const cellRef = useRef(null);
+  const [cellDimensions, setCellDimensions] = useState({ width: cellWidth, height: cellHeight });
+  
   // Add these near your other state declarations in index.tsx
 const [startTime] = useState(new Date());
 const [elapsedTime, setElapsedTime] = useState(0);
+const [showOverlay, setShowOverlay] = useState(false);
+  const [lastMovementTimestamp, setLastMovementTimestamp] = useState(Date.now());
 
 // Add this useEffect for time tracking
 useEffect(() => {
@@ -59,13 +70,29 @@ useEffect(() => {
 
   return () => clearInterval(timer);
 }, [startTime]);
-
+  // Add auto-show/hide overlay based on user inactivity
+  useEffect(() => {
+    const idleThreshold = 5000; // 5 seconds of inactivity
+    
+    const checkActivity = setInterval(() => {
+      const now = Date.now();
+      if (now - lastMovementTimestamp > idleThreshold) {
+        setShowOverlay(false);
+      }
+    }, 1000);
+    
+    return () => clearInterval(checkActivity);
+  }, [lastMovementTimestamp]);
 
   
   interface Coordinate {
     row: number;
     col: number;
     digit: number;
+    value: string;
+    timestamp: number;
+    x?: number;
+    y?: number;
   }
   
   const [pressedCoordinates, setPressedCoordinates] = useState<Coordinate[]>([]);
@@ -87,10 +114,13 @@ useEffect(() => {
     }, 0);
   }, []);
 
-  const cellWidth = width / 10; // 10 columns across the device width
-  const cellHeight = height / 20; // Adjust cell height based on the device height
+  
 
   const handlePress = (rowIndex: number, colIndex: number, digitIndex: number) => {
+    // Update movement timestamp on any interaction
+    setLastMovementTimestamp(Date.now());
+    setShowOverlay(false);
+
     const newData = data.map((row, rIdx) => row.map((number, cIdx) => {
       if (rIdx === rowIndex && cIdx === colIndex) {
         const newDigits = number.map((digit, dIdx) => {
@@ -105,38 +135,98 @@ useEffect(() => {
                   return newCount;
                 });
                 if (digitIndex < number.length / 2) {
-                  setLeftSide3s(prev => [...prev, { row: rowIndex, col: colIndex, digit: digitIndex }]);
+                  setLeftSide3s(prev => [...prev, { row: rowIndex, col: colIndex, digit: digitIndex, value: digit.value,
+                    timestamp: Date.now() }]);
                 } else {
-                  setRightSide3s(prev => [...prev, { row: rowIndex, col: colIndex, digit: digitIndex }]);
+                  setRightSide3s(prev => [...prev, { row: rowIndex, col: colIndex, digit: digitIndex , value: digit.value,
+                    timestamp: Date.now()}]);
                 }
                 if (rowIndex < data.length / 2 && colIndex < 5) {
                   setQuadrant3s(prev => ({
                     ...prev,
-                    upperLeft: [...prev.upperLeft, { row: rowIndex, col: colIndex, digit: digitIndex }]
+                    upperLeft: [...prev.upperLeft, { row: rowIndex, col: colIndex, digit: digitIndex , value: digit.value,
+                      timestamp: Date.now()}]
                   }));
                 } else if (rowIndex >= data.length / 2 && colIndex < 5) {
                   setQuadrant3s(prev => ({
                     ...prev,
-                    lowerLeft: [...prev.lowerLeft, { row: rowIndex, col: colIndex, digit: digitIndex }]
+                    lowerLeft: [...prev.lowerLeft, { row: rowIndex, col: colIndex, digit: digitIndex , value: digit.value,
+                      timestamp: Date.now()}]
                   }));
                 } else if (rowIndex < data.length / 2 && colIndex >= 5) {
                   setQuadrant3s(prev => ({
                     ...prev,
-                    upperRight: [...prev.upperRight, { row: rowIndex, col: colIndex, digit: digitIndex }]
+                    upperRight: [...prev.upperRight, { row: rowIndex, col: colIndex, digit: digitIndex, value: digit.value,
+                      timestamp: Date.now() }]
                   }));
                 } else {
                   setQuadrant3s(prev => ({
                     ...prev,
-                    lowerRight: [...prev.lowerRight, { row: rowIndex, col: colIndex, digit: digitIndex }]
+                    lowerRight: [...prev.lowerRight, { row: rowIndex, col: colIndex, digit: digitIndex , value: digit.value,
+                      timestamp: Date.now()}]
+                  }));
+                }
+
+                // Update quadrant data
+                if (rowIndex < data.length / 2 && colIndex < 5) {
+                  setQuadrant3s(prev => ({
+                    ...prev,
+                    upperLeft: [...prev.upperLeft, { 
+                      row: rowIndex, 
+                      col: colIndex, 
+                      digit: digitIndex,
+                      value: digit.value,
+                      timestamp: Date.now()
+                    }]
+                  }));
+                } else if (rowIndex >= data.length / 2 && colIndex < 5) {
+                  setQuadrant3s(prev => ({
+                    ...prev,
+                    lowerLeft: [...prev.lowerLeft, { 
+                      row: rowIndex, 
+                      col: colIndex, 
+                      digit: digitIndex,
+                      value: digit.value,
+                      timestamp: Date.now()
+                    }]
+                  }));
+                } else if (rowIndex < data.length / 2 && colIndex >= 5) {
+                  setQuadrant3s(prev => ({
+                    ...prev,
+                    upperRight: [...prev.upperRight, { 
+                      row: rowIndex, 
+                      col: colIndex, 
+                      digit: digitIndex,
+                      value: digit.value,
+                      timestamp: Date.now()
+                    }]
+                  }));
+
+                } else {
+                  setQuadrant3s(prev => ({
+                    ...prev,
+                    lowerRight: [...prev.lowerRight, { 
+                      row: rowIndex, 
+                      col: colIndex, 
+                      digit: digitIndex,
+                      value: digit.value,
+                      timestamp: Date.now()
+                    }]
                   }));
                 }
               } else {
+                // Handle unmarking a "3"
+
                 setDigit3Count(prev => prev - 1);
                 setDigit3ColumnCount(prev => {
                   const newCount = [...prev];
                   newCount[colIndex]--;
                   return newCount;
                 });
+                // Remove from the appropriate lists
+                const coordFilter = (coord:any) => 
+                  !(coord.row === rowIndex && coord.col === colIndex && coord.digit === digitIndex);
+
                 setLeftSide3s(prev => prev.filter(coord => !(coord.row === rowIndex && coord.col === colIndex && coord.digit === digitIndex)));
                 setRightSide3s(prev => prev.filter(coord => !(coord.row === rowIndex && coord.col === colIndex && coord.digit === digitIndex)));
                 setQuadrant3s(prev => ({
@@ -157,7 +247,10 @@ useEffect(() => {
     }));
 
     setData(newData);
-    setPressedCoordinates(prev => [...prev, { row: rowIndex, col: colIndex, digit: digitIndex }]);
+        // Add to pressed coordinates with timestamp
+
+    setPressedCoordinates(prev => [...prev, { row: rowIndex, col: colIndex, digit: digitIndex, value: data[rowIndex][colIndex][digitIndex].value,
+      timestamp: Date.now()}]);
   };
 
   console.log('Pressed Coordinates:', pressedCoordinates);
@@ -166,6 +259,10 @@ useEffect(() => {
   console.log('List of "3" digits pressed on the left side of strings:', leftSide3s);
   console.log('List of "3" digits pressed on the right side of strings:', rightSide3s);
   console.log('List of "3" digits pressed in quadrants:', quadrant3s);
+    // Function to toggle overlay visibility
+    const toggleOverlay = () => {
+      setShowOverlay(prev => !prev);
+    };
 
   return (
     <>
@@ -196,11 +293,13 @@ useEffect(() => {
         )}
         contentContainerStyle={styles.flatListContainer}
       />
+      
+      
      
      </View>
     
     <View style={styles.buttonContainer}>
-      <Button 
+      <Button      
         mode="contained"
         onPress={() => {
           router.push({
@@ -333,6 +432,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
   },
+  overlayToggle: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 40 : 20,
+    right: 20,
+    backgroundColor: 'rgba(33, 150, 243, 0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  overlayToggleText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 12,
+  },
 });
 
 export default Index;
+
+
+  // {/* Overlay that shows user movement patterns */}
+  // {showOverlay && (
+  //   <MovementTrackingOverlay 
+  //     pressedCoordinates={pressedCoordinates} 
+  //     cellDimensions={cellDimensions}
+  //   />
+  // )}
+  
+  // {/* Toggle button for overlay */}
+  // <Pressable 
+  //   style={styles.overlayToggle}
+  //   onPress={toggleOverlay}
+  // >
+  //   <Text style={styles.overlayToggleText}>
+  //     {showOverlay ? "Hide Movement Pattern" : "Show Movement Pattern"}
+  //   </Text>
+  // </Pressable>
