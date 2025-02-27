@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { Button } from 'react-native-paper';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -15,6 +15,15 @@ interface ExportButtonProps {
     leftSide3s: string;
     rightSide3s: string;
     quadrant3s: string;
+    selectedDigit: string;
+    has6MinResults: boolean;
+    sixMinData: string | null;
+    // Add all digits data
+    digitCounts: string;
+    digitColumnCounts: string;
+    leftSideDigits: string;
+    rightSideDigits: string;
+    quadrantDigits: string;
   };
 }
 
@@ -25,86 +34,254 @@ const ExportButton: React.FC<ExportButtonProps> = ({ data }) => {
   };
 
   const generateCSV = () => {
-    // Parse JSON strings
-    const columnCounts = JSON.parse(data.digit3ColumnCount || '[]');
-    const leftSide3s = JSON.parse(data.leftSide3s || '[]');
-    const rightSide3s = JSON.parse(data.rightSide3s || '[]');
-    const quadrant3s = JSON.parse(data.quadrant3s || '{}');
-
-    // Calculate statistics
-    const digit3Count = parseInt(data.digit3Count || '0');
-    const totalOmissions = 120 - digit3Count;
+    // Create header row with base information
+    const baseHeaders = [
+      'DataType', 'ParticipantID', 'ParticipantInitials', 'ExaminerInitials', 'Date', 'ElapsedTime'
+    ];
     
-    // Page side calculations
-    const leftPageCount = columnCounts.slice(0, 5).reduce((a: number, b: number) => a + b, 0);
-    const rightPageCount = columnCounts.slice(5, 10).reduce((a: number, b: number) => a + b, 0);
-    const leftPageOmissions = 60 - leftPageCount;
-    const rightPageOmissions = 60 - rightPageCount;
-    const pageCenteredOmission = leftPageOmissions - rightPageOmissions;
-
-    // String side calculations
-    const leftStringCount = leftSide3s.length;
-    const rightStringCount = rightSide3s.length;
-    const leftStringOmissions = 60 - leftStringCount;
-    const rightStringOmissions = 60 - rightStringCount;
-    const stringCenteredOmission = leftStringOmissions - rightStringOmissions;
-
-    // Format column counts as "left/right"
-    const columnData = Array(10).fill(0).map((_, i) => {
-      const leftCount = leftSide3s.filter((coord: any) => coord.col === i).length;
-      const rightCount = rightSide3s.filter((coord: any) => coord.col === i).length;
-      return `${leftCount}/${rightCount}`;
-    });
-
-    // Format quadrant counts
-    const upperLeft = `${(quadrant3s.upperLeft || []).length}/${15 - (quadrant3s.upperLeft || []).length}`;
-    const lowerLeft = `${(quadrant3s.lowerLeft || []).length}/${15 - (quadrant3s.lowerLeft || []).length}`;
-    const upperRight = `${(quadrant3s.upperRight || []).length}/${15 - (quadrant3s.upperRight || []).length}`;
-    const lowerRight = `${(quadrant3s.lowerRight || []).length}/${15 - (quadrant3s.lowerRight || []).length}`;
-
-    // Create CSV content
-    const csvContent = [
-      'Participant ID,Participant Initials,Date,Examiner Initials',
-      `${data.participantId},${data.participantInitials},${formatDate()},${data.examinerInitials}`,
-      '',
-      'a. Time (seconds)',
-      data.elapsedTime,
-      '',
-      'c. Number of crossed 3s in each column (left/right)',
-      ...columnData.map((count, i) => `Column ${i + 1},${count}`),
-      '',
-      'd. Number of crossed 3s in each quadrant (actual/total)',
-      `Upper Left,${upperLeft}`,
-      `Lower Left,${lowerLeft}`,
-      `Upper Right,${upperRight}`,
-      `Lower Right,${lowerRight}`,
-      '',
-      'Overall Statistics',
-      `e. Total crossed 3s,${digit3Count}`,
-      `f. Total omissions,${totalOmissions}`,
-      '',
-      'Page Side Analysis',
-      `g. Left side crossed 3s,${leftPageCount}`,
-      `h. Left side omissions,${leftPageOmissions}`,
-      `i. Right side crossed 3s,${rightPageCount}`,
-      `j. Right side omissions,${rightPageOmissions}`,
-      `k. Page-centered omission,${pageCenteredOmission}`,
-      '',
-      'String Analysis',
-      `l. Left string crossed 3s,${leftStringCount}`,
-      `m. Left string omissions,${leftStringOmissions}`,
-      `n. Right string crossed 3s,${rightStringCount}`,
-      `o. Right string omissions,${rightStringOmissions}`,
-      `p. String-centered omission,${stringCenteredOmission}`
-    ].join('\n');
-
+    // Headers for each digit (0-9)
+    const headers = [...baseHeaders];
+    
+    // Add detailed headers for all digits
+    for (let digit = 0; digit <= 9; digit++) {
+      headers.push(`Digit${digit}Found`);
+      headers.push(`Digit${digit}Omissions`);
+      headers.push(`Digit${digit}LeftFound`);
+      headers.push(`Digit${digit}RightFound`);
+      headers.push(`Digit${digit}LeftOmissions`);
+      headers.push(`Digit${digit}RightOmissions`);
+      headers.push(`Digit${digit}PageCentered`);
+      headers.push(`Digit${digit}StringCentered`);
+      headers.push(`Digit${digit}UpperLeft`);
+      headers.push(`Digit${digit}UpperRight`);
+      headers.push(`Digit${digit}LowerLeft`);
+      headers.push(`Digit${digit}LowerRight`);
+      
+      // Add column data for each digit
+      for (let col = 0; col < 10; col++) {
+        headers.push(`Digit${digit}Col${col+1}`);
+      }
+    }
+    
+    // Parse All digits data for full test
+    const digitCounts = JSON.parse(data.digitCounts || '[]');
+    const digitColumnCounts = JSON.parse(data.digitColumnCounts || '[]');
+    const leftSideDigits = JSON.parse(data.leftSideDigits || '[]');
+    const rightSideDigits = JSON.parse(data.rightSideDigits || '[]');
+    const quadrantDigits = JSON.parse(data.quadrantDigits || '[]');
+    
+    // Total digits per number in the test
+    // We know that 3 appears 120 times, but other digits might have different frequencies
+    // For simplicity and consistency, we'll use the same total value for all digits
+    const TOTAL_PER_DIGIT = 120;
+    const TOTAL_PER_SIDE = 60;  // 60 per side (left/right)
+    
+    // Parse 6-minute data if available
+    let sixMinData = null;
+    if (data.has6MinResults && data.sixMinData) {
+      try {
+        sixMinData = JSON.parse(data.sixMinData);
+      } catch (error) {
+        console.error("Error parsing sixMinData:", error);
+      }
+    }
+    
+    // Create full test data row
+    const fullTestRow = [
+      'CompleteTest',
+      data.participantId,
+      data.participantInitials,
+      data.examinerInitials,
+      formatDate(),
+      data.elapsedTime
+    ];
+    
+    // Add data for each digit to the full test row
+    for (let digit = 0; digit <= 9; digit++) {
+      const digitFound = digitCounts[digit] || 0;
+      const digitOmissions = TOTAL_PER_DIGIT - digitFound;
+      
+      const leftFound = (leftSideDigits[digit] || []).length;
+      const rightFound = (rightSideDigits[digit] || []).length;
+      
+      // Verify that leftFound + rightFound equals digitFound - if not, there might be data inconsistency
+      // In this case, proceed with the sum of sides as a fallback
+      const totalFromSides = leftFound + rightFound;
+      if (totalFromSides !== digitFound) {
+        console.warn(`Data inconsistency for digit ${digit}: digitFound (${digitFound}) != leftFound (${leftFound}) + rightFound (${rightFound})`);
+      }
+      
+      const leftOmissions = TOTAL_PER_SIDE - leftFound;
+      const rightOmissions = TOTAL_PER_SIDE - rightFound;
+      
+      // Calculate PageCentered value (difference between omissions on left vs right)
+      // A positive value means more omissions on left side (right side bias)
+      // A negative value means more omissions on right side (left side bias)
+      const pageCentered = leftOmissions - rightOmissions;
+      
+      // StringCentered follows the same pattern
+      const stringCentered = leftOmissions - rightOmissions;  // Could be different if we used a different metric
+      
+      // Quadrant data
+      const quadrant = quadrantDigits[digit] || {
+        upperLeft: [],
+        upperRight: [],
+        lowerLeft: [],
+        lowerRight: []
+      };
+      
+      const upperLeftCount = (quadrant.upperLeft || []).length;
+      const upperRightCount = (quadrant.upperRight || []).length;
+      const lowerLeftCount = (quadrant.lowerLeft || []).length;
+      const lowerRightCount = (quadrant.lowerRight || []).length;
+      
+      // Add all these values to the row
+      fullTestRow.push(String(digitFound));
+      fullTestRow.push(String(digitOmissions));
+      fullTestRow.push(String(leftFound));
+      fullTestRow.push(String(rightFound));
+      fullTestRow.push(String(leftOmissions));
+      fullTestRow.push(String(rightOmissions));
+      fullTestRow.push(String(pageCentered));
+      fullTestRow.push(String(stringCentered));
+      fullTestRow.push(String(upperLeftCount));
+      fullTestRow.push(String(upperRightCount));
+      fullTestRow.push(String(lowerLeftCount));
+      fullTestRow.push(String(lowerRightCount));
+      
+      // Add column data for this digit
+      const columns = digitColumnCounts[digit] || Array(10).fill(0);
+      for (let col = 0; col < 10; col++) {
+        fullTestRow.push(String(columns[col] || 0));
+      }
+    }
+    
+    // Create 6-minute data row if available
+    let sixMinRow = [];
+    if (sixMinData) {
+      sixMinRow = [
+        'First6Minutes',
+        data.participantId,
+        data.participantInitials,
+        data.examinerInitials,
+        formatDate(),
+        '360' // 6 minutes in seconds
+      ];
+      
+      // For 6-minute data, we only have data for the selected digit
+      const selectedDigit = parseInt(data.selectedDigit || '3');
+      
+      // Add data for each digit (0-9) to the 6-minute row
+      for (let digit = 0; digit <= 9; digit++) {
+        if (digit === selectedDigit && sixMinData) {
+          // We have actual data for the selected digit
+          const digitFound = sixMinData.digitCount || 0;
+          const digitOmissions = TOTAL_PER_DIGIT - digitFound;
+          
+          // Important fix: Make sure leftSide and rightSide data is available
+          // If not, we need to process from the coordinates
+          let leftFound = 0;
+          let rightFound = 0;
+          
+          // First try to get data from leftSide and rightSide arrays
+          if (sixMinData.leftSide && Array.isArray(sixMinData.leftSide)) {
+            leftFound = sixMinData.leftSide.length;
+          }
+          
+          if (sixMinData.rightSide && Array.isArray(sixMinData.rightSide)) {
+            rightFound = sixMinData.rightSide.length;
+          }
+          
+          // If we don't have sufficient data from sides, try to calculate from coordinates
+          if (leftFound === 0 && rightFound === 0 && sixMinData.coordinates && Array.isArray(sixMinData.coordinates)) {
+            const selectedDigitStr = selectedDigit.toString();
+            const filteredCoords = sixMinData.coordinates.filter(coord => coord.value === selectedDigitStr);
+            
+            // Process by column (0-4 is left, 5-9 is right)
+            leftFound = filteredCoords.filter(coord => coord.col < 5).length;
+            rightFound = filteredCoords.filter(coord => coord.col >= 5).length;
+          }
+          
+          // Check for data inconsistency
+          if (leftFound + rightFound !== digitFound) {
+            console.warn(`6-min data inconsistency for digit ${digit}: digitFound (${digitFound}) != leftFound (${leftFound}) + rightFound (${rightFound})`);
+          }
+          
+          const leftOmissions = TOTAL_PER_SIDE - leftFound;
+          const rightOmissions = TOTAL_PER_SIDE - rightFound;
+          
+          const pageCentered = leftOmissions - rightOmissions;
+          const stringCentered = leftOmissions - rightOmissions;
+          
+          // Quadrant data
+          let upperLeftCount = 0;
+          let upperRightCount = 0; 
+          let lowerLeftCount = 0;
+          let lowerRightCount = 0;
+          
+          // Use quadrants if available
+          if (sixMinData.quadrants) {
+            const quadrant = sixMinData.quadrants;
+            upperLeftCount = (quadrant.upperLeft || []).length;
+            upperRightCount = (quadrant.upperRight || []).length;
+            lowerLeftCount = (quadrant.lowerLeft || []).length;
+            lowerRightCount = (quadrant.lowerRight || []).length;
+          } 
+          // Otherwise try to calculate from coordinates
+          else if (sixMinData.coordinates && Array.isArray(sixMinData.coordinates)) {
+            const selectedDigitStr = selectedDigit.toString();
+            const filteredCoords = sixMinData.coordinates.filter(coord => coord.value === selectedDigitStr);
+            
+            upperLeftCount = filteredCoords.filter(coord => coord.row < 7 && coord.col < 5).length;
+            upperRightCount = filteredCoords.filter(coord => coord.row < 7 && coord.col >= 5).length;
+            lowerLeftCount = filteredCoords.filter(coord => coord.row >= 7 && coord.col < 5).length;
+            lowerRightCount = filteredCoords.filter(coord => coord.row >= 7 && coord.col >= 5).length;
+          }
+          
+          // Add all these values to the row
+          sixMinRow.push(String(digitFound));
+          sixMinRow.push(String(digitOmissions));
+          sixMinRow.push(String(leftFound));
+          sixMinRow.push(String(rightFound));
+          sixMinRow.push(String(leftOmissions));
+          sixMinRow.push(String(rightOmissions));
+          sixMinRow.push(String(pageCentered));
+          sixMinRow.push(String(stringCentered));
+          sixMinRow.push(String(upperLeftCount));
+          sixMinRow.push(String(upperRightCount));
+          sixMinRow.push(String(lowerLeftCount));
+          sixMinRow.push(String(lowerRightCount));
+          
+          // Add column data for selected digit
+          const columns = sixMinData.columnCounts || Array(10).fill(0);
+          for (let col = 0; col < 10; col++) {
+            sixMinRow.push(String(columns[col] || 0));
+          }
+        } else {
+          // For other digits, add placeholder zeros
+          for (let i = 0; i < 22; i++) { // 12 metrics + 10 columns
+            sixMinRow.push('0');
+          }
+        }
+      }
+    }
+    
+    // Combine all parts into the final CSV
+    let csvContent = headers.join(',') + '\n';
+    
+    // Add rows in correct order (6-min first, then full test)
+    if (sixMinRow.length > 0) {
+      csvContent += sixMinRow.join(',') + '\n';
+    }
+    csvContent += fullTestRow.join(',');
+    
     return csvContent;
   };
 
   const handleExport = async () => {
     try {
       const csvContent = generateCSV();
-      const fileName = `3s_test_${data.participantId}_${formatDate().replace(/\//g, '-')}.csv`;
+      const fileName = `digit_test_${data.participantId}_${formatDate().replace(/\//g, '-')}.csv`;
       
       if (Platform.OS === 'web') {
         // For web platform

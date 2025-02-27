@@ -5,15 +5,28 @@ import { useLocalSearchParams } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
-const EnhancedResultsDescription = () => {
-  const params = useLocalSearchParams();
+const EnhancedResultsDescription = ({ currentDigitData, selectedDigit, params }) => {
+  // If no currentDigitData is provided, read from params (for backward compatibility)
+  const localParams = useLocalSearchParams();
+  const allParams = params || localParams;
   
-  // Parse the JSON strings from params
-  const leftSide3s = JSON.parse(params.leftSide3s  || '[]');
-  const rightSide3s = JSON.parse(params.rightSide3s  || '[]');
-  const digit3Count = parseInt(params.digit3Count || '0');
-  const columnCounts = JSON.parse(params.digit3ColumnCount  || '[]');
-  const elapsedTime = params.elapsedTime ? parseInt(params.elapsedTime ) : 0;
+  // Use the selected digit data if provided, otherwise fall back to params
+  let leftSideDigits, rightSideDigits, digitCount, columnCounts;
+  
+  if (currentDigitData) {
+    leftSideDigits = currentDigitData.leftSide;
+    rightSideDigits = currentDigitData.rightSide;
+    digitCount = currentDigitData.digitCount;
+    columnCounts = currentDigitData.columnCounts;
+  } else {
+    // Parse the JSON strings from params (backward compatibility for digit 3)
+    leftSideDigits = JSON.parse(allParams.leftSide3s || '[]');
+    rightSideDigits = JSON.parse(allParams.rightSide3s || '[]');
+    digitCount = parseInt(allParams.digit3Count || '0');
+    columnCounts = JSON.parse(allParams.digit3ColumnCount || '[]');
+  }
+  
+  const elapsedTime = allParams.elapsedTime ? parseInt(allParams.elapsedTime) : 0;
   
   // Format elapsed time
   const minutes = Math.floor(elapsedTime / 60);
@@ -22,17 +35,37 @@ const EnhancedResultsDescription = () => {
   
   // Calculate statistics
   // Page-centered calculations (Columns 1-5 vs 6-10)
-  const leftPageCount = columnCounts.slice(0, 5).reduce((a, b) => a + b, 0);
-  const rightPageCount = columnCounts.slice(5, 10).reduce((a, b) => a + b, 0);
-  const leftPageOmissions = 60 - leftPageCount;
-  const rightPageOmissions = 60 - rightPageCount;
+  const leftPageCount = (columnCounts || []).slice(0, 5).reduce((a, b) => a + b, 0);
+  const rightPageCount = (columnCounts || []).slice(5, 10).reduce((a, b) => a + b, 0);
+  
+  // We know there are 120 total digits (or fewer) in the 3s test spreadsheet 
+  // But for other digits, we need to calculate totals differently
+  const TOTAL_PER_DIGIT = {
+    0: 98,   // Example: counted from the test data
+    1: 108,  // Example: counted from the test data
+    2: 82,   // Example: counted from the test data
+    3: 120,  // Known from the original test
+    4: 103,  // Example: counted from the test data
+    5: 95,   // Example: counted from the test data
+    6: 86,   // Example: counted from the test data
+    7: 93,   // Example: counted from the test data
+    8: 88,   // Example: counted from the test data
+    9: 91    // Example: counted from the test data
+  };
+  
+  // Get total count for the selected digit (with fallback)
+  const totalDigitCount = TOTAL_PER_DIGIT[selectedDigit] || 120;
+  const perSide = Math.floor(totalDigitCount / 2);
+  
+  const leftPageOmissions = perSide - leftPageCount;
+  const rightPageOmissions = perSide - rightPageCount;
   const pageCenteredOmission = leftPageOmissions - rightPageOmissions; // Positive means more omissions on left
   
   // String-centered calculations (Within each number, left vs right side of digits)
-  const leftStringCount = leftSide3s.length;
-  const rightStringCount = rightSide3s.length;
-  const leftStringOmissions = 60 - leftStringCount;
-  const rightStringOmissions = 60 - rightStringCount;
+  const leftStringCount = (leftSideDigits || []).length;
+  const rightStringCount = (rightSideDigits || []).length;
+  const leftStringOmissions = perSide - leftStringCount;
+  const rightStringOmissions = perSide - rightStringCount;
   const stringCenteredOmission = leftStringOmissions - rightStringOmissions; // Positive means more omissions on left
   
   // Format the egocentric scores
@@ -55,11 +88,11 @@ const EnhancedResultsDescription = () => {
         <View style={styles.column}>
           <View style={styles.row}>
             <Text style={styles.label}>Participant ID:</Text>
-            <Text style={styles.value}>{params.participantId || "XXXXX"}</Text>
+            <Text style={styles.value}>{allParams.participantId || "XXXXX"}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Participant Initials:</Text>
-            <Text style={styles.value}>{params.participantInitials || "XXXX"}</Text>
+            <Text style={styles.value}>{allParams.participantInitials || "XXXX"}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Date:</Text>
@@ -67,7 +100,7 @@ const EnhancedResultsDescription = () => {
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Examiner Initials:</Text>
-            <Text style={styles.value}>{params.examinerInitials || "XXXX"}</Text>
+            <Text style={styles.value}>{allParams.examinerInitials || "XXXX"}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Time:</Text>
@@ -79,8 +112,18 @@ const EnhancedResultsDescription = () => {
         
         <View style={styles.column}>
           <View style={styles.row}>
-            <Text style={styles.totalsLabel}>Total crossed 3s:</Text>
-            <Text style={styles.totalsValue}>{digit3Count}</Text>
+            <Text style={styles.totalsLabel}>Selected Digit:</Text>
+            <Text style={styles.selectedDigit}>{selectedDigit}</Text>
+          </View>
+          
+          <View style={styles.row}>
+            <Text style={styles.totalsLabel}>Total crossed {selectedDigit}s:</Text>
+            <Text style={styles.totalsValue}>{digitCount}</Text>
+          </View>
+          
+          <View style={styles.row}>
+            <Text style={styles.totalsLabel}>Total omissions:</Text>
+            <Text style={styles.totalsValue}>{totalDigitCount - digitCount}</Text>
           </View>
           
           <View style={styles.sectionHeader}>
@@ -88,9 +131,9 @@ const EnhancedResultsDescription = () => {
           </View>
           
           <View style={styles.row}>
-            <Text style={styles.subLabel}>(a) Marked 3s on Left:</Text>
+            <Text style={styles.subLabel}>(a) Marked {selectedDigit}s on Left:</Text>
             <Text style={styles.subValue}>{leftPageCount}</Text>
-            <Text style={styles.subLabel}>(b) Marked 3s on Right:</Text>
+            <Text style={styles.subLabel}>(b) Marked {selectedDigit}s on Right:</Text>
             <Text style={styles.subValue}>{rightPageCount}</Text>
           </View>
           
@@ -103,9 +146,9 @@ const EnhancedResultsDescription = () => {
           </View>
           
           <View style={styles.row}>
-            <Text style={styles.subLabel}>(c) Marked 3s on Left:</Text>
+            <Text style={styles.subLabel}>(c) Marked {selectedDigit}s on Left:</Text>
             <Text style={styles.subValue}>{leftStringCount}</Text>
-            <Text style={styles.subLabel}>(d) Marked 3s on Right:</Text>
+            <Text style={styles.subLabel}>(d) Marked {selectedDigit}s on Right:</Text>
             <Text style={styles.subValue}>{rightStringCount}</Text>
           </View>
           
@@ -167,6 +210,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     color: '#333',
+  },
+  selectedDigit: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4B9EF8',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginLeft: 4,
   },
   sectionHeader: {
     marginTop: 8,

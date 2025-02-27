@@ -23,12 +23,12 @@ const gridData = [
   [579103, 970943, 42057, 87652143, 3048, 497538, 1230, 93745125, 19081257, 23456],
 ];
 
-// Function to check if a number contains a '3'
-const hasDigitThree = (number) => {
-  return number.toString().includes('3');
+// Function to check if a number contains the selected digit
+const hasSelectedDigit = (number, selectedDigit) => {
+  return number.toString().includes(selectedDigit);
 };
 
-const ClickPathVisualization = ({ pressedCoordinates }) => {
+const ClickPathVisualization = ({ pressedCoordinates, highlightedDigit = '3' }) => {
   const cellWidth = (width - 32) / 10; // 10 columns with some margin
   const cellHeight = cellWidth * 0.7; // Maintain a reasonable cell aspect ratio
   const svgHeight = cellHeight * 14; // 14 rows
@@ -37,7 +37,7 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
   if (!pressedCoordinates || pressedCoordinates.length === 0) {
     return (
       <Card style={styles.card}>
-        <Card.Title title="User Click Path Visualization" titleStyle={styles.cardTitle} />
+        <Card.Title title={`User Click Path - Digit ${highlightedDigit}`} titleStyle={styles.cardTitle} />
         <Card.Content style={styles.cardContent}>
           <Text style={styles.noDataText}>No movement data available to visualize.</Text>
         </Card.Content>
@@ -61,7 +61,7 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
       x,
       y,
       index,
-      isDigit3: coord.value === '3',
+      isSelectedDigit: coord.value === highlightedDigit,
       row: validRow,
       col: validCol
     };
@@ -144,27 +144,28 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
 
   return (
     <Card style={styles.card}>
-      <Card.Title title="User Click Path Visualization" titleStyle={styles.cardTitle} />
+      <Card.Title title={`User Click Path - Digit ${highlightedDigit}`} titleStyle={styles.cardTitle} />
       <Card.Content style={styles.cardContent}>
         <View style={styles.gridContainer}>
           {/* Draw the grid with numbers */}
           {gridData.map((row, rowIndex) => (
             <View key={`row-${rowIndex}`} style={styles.row}>
               {row.map((cell, colIndex) => {
-                const hasThree = hasDigitThree(cell);
+                const hasHighlightedDigit = hasSelectedDigit(cell, highlightedDigit);
                 return (
                   <View 
                     key={`cell-${rowIndex}-${colIndex}`} 
                     style={[
                       styles.cell, 
                       { width: cellWidth, height: cellHeight },
-                      hasThree && styles.digitThreeCell
+                      hasHighlightedDigit && styles.digitHighlightedCell
                     ]}
                   >
                     <Text 
                       style={[
                         styles.cellText,
-                        { fontSize: Math.min(cellWidth / (cell.toString().length + 1), 14) }
+                        { fontSize: Math.min(cellWidth / (cell.toString().length + 1), 14) },
+                        hasHighlightedDigit && styles.highlightedCellText
                       ]}
                       numberOfLines={1}
                       ellipsizeMode="clip"
@@ -189,7 +190,7 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
               {positionData.map((point, index) => {
                 if (index === 0) return null;
                 const prevPoint = positionData[index - 1];
-                const isImportant = point.isDigit3 || prevPoint.isDigit3;
+                const isImportant = point.isSelectedDigit || prevPoint.isSelectedDigit;
                 const arrow = createArrow(
                   prevPoint.x, 
                   prevPoint.y, 
@@ -203,8 +204,8 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
                 
                 // Define gradient ID for this arrow
                 const gradientId = `gradient-${index}`;
-                const startColor = prevPoint.isDigit3 ? "#d32f2f" : "#1976d2";
-                const endColor = point.isDigit3 ? "#d32f2f" : "#1976d2";
+                const startColor = prevPoint.isSelectedDigit ? "#d32f2f" : "#1976d2";
+                const endColor = point.isSelectedDigit ? "#d32f2f" : "#1976d2";
                 
                 return (
                   <G key={`connection-${index}`}>
@@ -240,11 +241,11 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
             {/* Draw nodes for each click */}
             <G>
               {positionData.map((point, index) => {
-                // Define colors based on whether this is a "3" or not
-                const fillColor = point.isDigit3 ? "#f44336" : "#2196f3";
-                const strokeColor = point.isDigit3 ? "#d32f2f" : "#1976d2";
-                const glowColor = point.isDigit3 ? "#ffcdd2" : "#bbdefb";
-                const nodeSize = point.isDigit3 ? 15 : 12;
+                // Define colors based on whether this is the highlighted digit or not
+                const fillColor = point.isSelectedDigit ? "#f44336" : "#2196f3";
+                const strokeColor = point.isSelectedDigit ? "#d32f2f" : "#1976d2";
+                const glowColor = point.isSelectedDigit ? "#ffcdd2" : "#bbdefb";
+                const nodeSize = point.isSelectedDigit ? 15 : 12;
                 
                 // Gradient ID for this node
                 const gradientId = `node-gradient-${index}`;
@@ -261,7 +262,7 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
                     </Defs>
                     
                     {/* Outer glow effect */}
-                    {point.isDigit3 && (
+                    {point.isSelectedDigit && (
                       <Circle
                         cx={point.x}
                         cy={point.y}
@@ -324,7 +325,7 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
               borderWidth: 1, 
               borderColor: '#d32f2f' 
             }]} />
-            <Text style={styles.legendText}>Number 3 Clicks</Text>
+            <Text style={styles.legendText}>{`Digit "${highlightedDigit}" Clicks`}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendMarker, { 
@@ -332,7 +333,7 @@ const ClickPathVisualization = ({ pressedCoordinates }) => {
               borderWidth: 1, 
               borderColor: '#FFB74D' 
             }]} />
-            <Text style={styles.legendText}>Contains Digit 3</Text>
+            <Text style={styles.legendText}>{`Contains Digit "${highlightedDigit}"`}</Text>
           </View>
         </View>
       </Card.Content>
@@ -381,14 +382,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
-  digitThreeCell: {
-    backgroundColor: '#FFF3E0', // Light orange background for cells with '3'
+  digitHighlightedCell: {
+    backgroundColor: '#FFF3E0', // Light orange background for cells with highlighted digit
     borderWidth: 1,
-    borderColor: '#FFB74D', // Stronger border to highlight cells with '3'
+    borderColor: '#FFB74D', // Stronger border to highlight cells with highlighted digit
   },
   cellText: {
     color: '#333',
     textAlign: 'center',
+  },
+  highlightedCellText: {
+    color: '#d32f2f',
+    fontWeight: '600',
   },
   svgOverlay: {
     position: 'absolute',

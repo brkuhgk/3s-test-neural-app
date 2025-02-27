@@ -23,15 +23,15 @@ const gridData = [
   [579103, 970943, 42057, 87652143, 3048, 497538, 1230, 93745125, 19081257, 23456],
 ];
 
-// Function to check if a number contains a '3'
-const hasDigitThree = (number) => {
-  return number.toString().includes('3');
+// Function to check if a number contains the selected digit
+const hasSelectedDigit = (number, selectedDigit) => {
+  return number.toString().includes(selectedDigit);
 };
 
 // Calculate color based on intensity (0-1 range) - UPDATED for better visibility
-const getHeatMapColor = (intensity, isDigit3) => {
-  if (isDigit3) {
-    // Red-based gradient for cells containing 3s - reduced opacity
+const getHeatMapColor = (intensity, hasDigit) => {
+  if (hasDigit) {
+    // Red-based gradient for cells containing selected digit - reduced opacity
     if (intensity === 0) return 'rgba(255, 243, 224, 0.4)'; // Very light orange background
     if (intensity < 0.25) return `rgba(255, 138, 101, ${0.2 + intensity * 0.4})`;
     if (intensity < 0.5) return `rgba(255, 112, 67, ${0.25 + intensity * 0.35})`;
@@ -47,7 +47,7 @@ const getHeatMapColor = (intensity, isDigit3) => {
   }
 };
 
-const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
+const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions, selectedDigit = '3' }) => {
   // Create heatmap data structure with memoization for performance
   const heatmapData = useMemo(() => {
     if (!pressedCoordinates || pressedCoordinates.length === 0) {
@@ -74,8 +74,8 @@ const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
     return { heatmap, maxValue };
   }, [pressedCoordinates]);
   
-  // Create set of digit3 coordinates for quick lookup
-  const digit3Cells = useMemo(() => {
+  // Create set of selected digit coordinates for quick lookup
+  const digitCells = useMemo(() => {
     const set = new Set();
     
     if (digit3Positions && digit3Positions.length > 0) {
@@ -129,7 +129,7 @@ const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
   if (!heatmapData) {
     return (
       <Card style={styles.card}>
-        <Card.Title title="Movement Heatmap" titleStyle={styles.cardTitle} />
+        <Card.Title title={`Movement Heatmap - Digit ${selectedDigit}`} titleStyle={styles.cardTitle} />
         <Card.Content style={styles.cardContent}>
           <Text style={styles.noDataText}>No movement data available to visualize.</Text>
         </Card.Content>
@@ -143,7 +143,7 @@ const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
 
   return (
     <Card style={styles.card}>
-      <Card.Title title="Movement Heatmap" titleStyle={styles.cardTitle} />
+      <Card.Title title={`Movement Heatmap - Digit ${selectedDigit}`} titleStyle={styles.cardTitle} />
       <Card.Content style={styles.cardContent}>
         {/* Heatmap grid with background numbers */}
         <View style={styles.heatmapContainer}>
@@ -152,11 +152,11 @@ const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
               {row.map((cell, colIndex) => {
                 const cellValue = heatmapData.heatmap[rowIndex][colIndex];
                 const intensity = cellValue / heatmapData.maxValue;
-                const hasThree = hasDigitThree(cell);
+                const hasDigit = hasSelectedDigit(cell, selectedDigit);
                 const isClicked = cellValue > 0;
                 
                 // Determine cell background color
-                const backgroundColor = getHeatMapColor(intensity, hasThree);
+                const backgroundColor = getHeatMapColor(intensity, hasDigit);
                 
                 // Determine text color based on background intensity
                 const textColor = intensity > 0.5 ? '#FFFFFF' : '#333333';
@@ -170,8 +170,8 @@ const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
                         width: cellWidth, 
                         height: cellHeight,
                         backgroundColor: backgroundColor,
-                        borderColor: hasThree ? '#FFB74D' : '#E0E0E0',
-                        borderWidth: hasThree ? 1 : 0.5,
+                        borderColor: hasDigit ? '#FFB74D' : '#E0E0E0',
+                        borderWidth: hasDigit ? 1 : 0.5,
                       }
                     ]}
                   >
@@ -181,9 +181,9 @@ const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
                         styles.cellText,
                         { 
                           fontSize: Math.min(cellWidth / (cell.toString().length + 1), 10),
-                          color: hasThree ? 'rgba(180, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)',
+                          color: hasDigit ? 'rgba(180, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)',
                           opacity: 0.85,
-                          fontWeight: hasThree ? '600' : '400'
+                          fontWeight: hasDigit ? '600' : '400'
                         }
                       ]}
                       numberOfLines={1}
@@ -261,7 +261,7 @@ const OptimizedHeatmap = ({ pressedCoordinates, digit3Positions }) => {
               start={[0, 0]}
               end={[1, 0]}
             />
-            <Text style={styles.legendText}>Cells with "3" Clicks (Low → High)</Text>
+            <Text style={styles.legendText}>Cells with "{selectedDigit}" Clicks (Low → High)</Text>
           </View>
         </View>
       </Card.Content>
