@@ -93,7 +93,7 @@ const HomeUI = () => {
           {/* Header */}
           <View style={styles.headerContainer}>
             <BrainIcon />
-            <Text style={styles.title}>3s Cognitive Assessment</Text>
+            <Text style={styles.title}>3s Spreadsheet Test</Text>
             <Text style={styles.subtitle}>Neurological Scanning Test</Text>
           </View>
 

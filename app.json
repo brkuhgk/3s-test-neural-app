@@ -2,7 +2,7 @@
   "expo": {
     "name": "3s-test-sheet-app",
     "slug": "3s-test-sheet-app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -10,13 +10,16 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.karthikboddudev.3s-test-sheet-app"
+      "bundleIdentifier": "org.kesslerfoundation.3s-spreadsheet-app-v2",
+      "buildNumber": "11",
+      "version": "1.1.0"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "org.kesslerfoundation.x3sspreadsheetapp_v2"
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +40,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "7a4465bd-8f52-4fe5-ba14-f6cf8d8489e6"
+      }
     }
   }
 }
